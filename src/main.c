@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  * https://github.com/foldedtoad/ssd1306_zephyr
  * https://github.com/zephyrproject-rtos/zephyr/issues/33589
+ * https://devzone.nordicsemi.com/nordic/b/archives/posts/nrf-connect-sdk-tutorial---part-3-temporary#h56sk0f6zs6u1qqs6nj2hbrjty9raxu
  */
 
 /** @file
