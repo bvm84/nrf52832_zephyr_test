@@ -5,6 +5,7 @@
  * https://github.com/foldedtoad/ssd1306_zephyr
  * https://github.com/zephyrproject-rtos/zephyr/issues/33589
  * https://devzone.nordicsemi.com/nordic/b/archives/posts/nrf-connect-sdk-tutorial---part-3-temporary#h56sk0f6zs6u1qqs6nj2hbrjty9raxu
+ * https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/samples/bluetooth/peripheral_uart/README.html
  */
 
 /** @file
@@ -555,10 +556,56 @@ static struct bt_conn_auth_cb conn_auth_callbacks = {
 	.pairing_complete = pairing_complete,
 	.pairing_failed = pairing_failed
 };
-/*
+
 void main(void)
 {
 	int err;
+	struct device *dev;
+    uint16_t rows;
+    uint8_t ppt;
+    uint8_t font_width;
+    uint8_t font_height;
+    uint16_t display_height;
+
+    dev = device_get_binding("SSD1306");
+    if (dev == NULL) {
+        printk("Device not found\n");
+        return;
+    }
+    if (display_set_pixel_format(dev, PIXEL_FORMAT_MONO10) != 0) {
+        printk("Failed to set required pixel format\n");
+        return;
+    }
+	printk("initialized %s\n", "SSD1306");
+
+    if (cfb_framebuffer_init(dev)) {
+        printk("Framebuffer initialization failed!\n");
+        return;
+    }
+
+    cfb_framebuffer_clear(dev, true);
+    cfb_framebuffer_invert(dev);
+    display_blanking_off(dev);
+	rows = cfb_get_display_parameter(dev, CFB_DISPLAY_ROWS);
+    ppt = cfb_get_display_parameter(dev, CFB_DISPLAY_PPT);
+
+    for (int idx = 0; idx < 1; idx++) {
+        if (cfb_get_font_size(dev, idx, &font_width, &font_height)) {
+            break;
+        }
+        cfb_framebuffer_set_font(dev, idx);
+        printk("font width %d, font height %d\n",
+               font_width, font_height);
+    }
+    display_height = cfb_get_display_parameter(dev, CFB_DISPLAY_HEIGH);
+    printk("x_res %d, y_res %d, ppt %d, rows %d, cols %d\n",
+           cfb_get_display_parameter(dev, CFB_DISPLAY_WIDTH),
+           display_height,
+           ppt,
+           rows,
+           cfb_get_display_parameter(dev, CFB_DISPLAY_COLS));
+
+    char tmpstr[20];
 
 	err = bt_conn_auth_cb_register(&conn_auth_callbacks);
 	if (err) {
@@ -602,6 +649,19 @@ void main(void)
 						     K_FOREVER);
 
 		err = bt_nus_client_send(&nus_client, buf->data, buf->len);
+		memcpy(tmpstr, buf->data, 20);
+		cfb_framebuffer_clear(dev, false);
+        //sprintf(tmpstr, "%d", tick++);
+		 for (int i = 0; i < (display_height / font_height); i++) {
+            if (cfb_print(dev,
+                          tmpstr,
+                          0, i * font_height)) {
+                printk("Failed to print a string\n");
+                continue;
+            }
+        }
+        cfb_framebuffer_finalize(dev);
+        //k_sleep(K_MSEC(1000));
 		if (err) {
 			LOG_WRN("Failed to send data over BLE connection"
 				"(err %d)", err);
@@ -612,77 +672,4 @@ void main(void)
 			LOG_WRN("NUS send timeout");
 		}
 	}
-}
-*/
-
-void main() {
-    struct device *dev;
-    uint16_t rows;
-    uint8_t ppt;
-    uint8_t font_width;
-    uint8_t font_height;
-    uint16_t display_height;
-
-    dev = device_get_binding("SSD1306");
-
-    if (dev == NULL) {
-        printk("Device not found\n");
-        return;
-    }
-
-    if (display_set_pixel_format(dev, PIXEL_FORMAT_MONO10) != 0) {
-        printk("Failed to set required pixel format\n");
-        return;
-    }
-
-    printk("initialized %s\n", "SSD1306");
-
-    if (cfb_framebuffer_init(dev)) {
-        printk("Framebuffer initialization failed!\n");
-        return;
-    }
-
-    cfb_framebuffer_clear(dev, true);
-    cfb_framebuffer_invert(dev);
-    display_blanking_off(dev);
-
-
-    rows = cfb_get_display_parameter(dev, CFB_DISPLAY_ROWS);
-    ppt = cfb_get_display_parameter(dev, CFB_DISPLAY_PPT);
-
-    for (int idx = 0; idx < 1; idx++) {
-        if (cfb_get_font_size(dev, idx, &font_width, &font_height)) {
-            break;
-        }
-        cfb_framebuffer_set_font(dev, idx);
-        printk("font width %d, font height %d\n",
-               font_width, font_height);
-    }
-
-    display_height = cfb_get_display_parameter(dev, CFB_DISPLAY_HEIGH);
-
-    printk("x_res %d, y_res %d, ppt %d, rows %d, cols %d\n",
-           cfb_get_display_parameter(dev, CFB_DISPLAY_WIDTH),
-           display_height,
-           ppt,
-           rows,
-           cfb_get_display_parameter(dev, CFB_DISPLAY_COLS));
-
-    char tmpstr[50];
-    uint16_t tick = 0;
-
-    while (1) {
-        cfb_framebuffer_clear(dev, false);
-        sprintf(tmpstr, "%d", tick++);
-        for (int i = 0; i < (display_height / font_height); i++) {
-            if (cfb_print(dev,
-                          tmpstr,
-                          0, i * font_height)) {
-                printk("Failed to print a string\n");
-                continue;
-            }
-        }
-        cfb_framebuffer_finalize(dev);
-        k_sleep(K_MSEC(1000));
-    }
 }
